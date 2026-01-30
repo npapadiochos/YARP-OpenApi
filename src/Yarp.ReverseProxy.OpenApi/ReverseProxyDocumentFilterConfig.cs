@@ -7,8 +7,8 @@ namespace Yarp.ReverseProxy.OpenApi;
 public sealed class ReverseProxyDocumentFilterConfig
 {
     public OpenApiConfiguration OpenApiConfig { get; set; } = new();
-    public IReadOnlyDictionary<string, RouteConfig> Routes { get; set; }
     public IReadOnlyDictionary<string, Cluster> Clusters { get; set; }
+    public IReadOnlyDictionary<string, RouteConfig> Routes { get; set; }
 
     public sealed class Cluster
     {

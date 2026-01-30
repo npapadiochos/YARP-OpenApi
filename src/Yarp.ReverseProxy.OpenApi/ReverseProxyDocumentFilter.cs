@@ -16,10 +16,10 @@ namespace Yarp.ReverseProxy.OpenApi;
 
 public sealed class ReverseProxyDocumentFilter : IOpenApiDocumentTransformer
 {
+    private readonly List<ITransformFactory> _factories;
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly IReadOnlyDictionary<string, HttpMethod> _operationTypeMapping;
-    private readonly List<ITransformFactory> _factories;
-    
+
     private ReverseProxyDocumentFilterConfig config;
 
     public ReverseProxyDocumentFilter(
@@ -49,9 +49,7 @@ public sealed class ReverseProxyDocumentFilter : IOpenApiDocumentTransformer
     public async Task TransformAsync(OpenApiDocument doc, OpenApiDocumentTransformerContext context, CancellationToken cancellationToken)
     {
         if (config.IsEmpty)
-        {
             return;
-        }
 
         IReadOnlyDictionary<string, ReverseProxyDocumentFilterConfig.Cluster> clusters;
 
@@ -75,9 +73,7 @@ public sealed class ReverseProxyDocumentFilter : IOpenApiDocumentTransformer
     )
     {
         if (true != clusters?.Any())
-        {
             return;
-        }
 
         var info = openApiDoc.Info;
         var paths = new OpenApiPaths();
@@ -91,44 +87,33 @@ public sealed class ReverseProxyDocumentFilter : IOpenApiDocumentTransformer
             var cluster = clusterKeyValuePair.Value;
 
             if (true != cluster.Destinations?.Any())
-            {
                 continue;
-            }
 
             foreach (var destination in cluster.Destinations)
             {
                 if (true != destination.Value.OpenApiDocs?.Any())
-                {
                     continue;
-                }
 
                 var httpClient = _httpClientFactory.CreateClient($"{clusterKey}_{destination.Key}");
 
                 foreach (var openApi in destination.Value.OpenApiDocs)
                 {
                     if (openApi.Paths?.Any() != true)
-                    {
                         continue;
-                    }
-
-                    IReadOnlyDictionary<string, IEnumerable<string>> publishedRoutes = null;
-                    if (openApi.AddOnlyPublishedPaths)
-                    {
-                        publishedRoutes = GetPublishedPaths(config);
-                    }
 
                     Regex filterRegex = null;
+                    IReadOnlyDictionary<string, IEnumerable<string>> publishedRoutes = null;
+
+                    if (openApi.AddOnlyPublishedPaths)
+                        publishedRoutes = GetPublishedPaths(config);
+
                     if (!string.IsNullOrWhiteSpace(openApi.PathFilterRegexPattern))
-                    {
                         filterRegex = new Regex(openApi.PathFilterRegexPattern);
-                    }
 
                     foreach (var openApiPath in openApi.Paths)
                     {
                         if (!Uri.TryCreate(new Uri(destination.Value.Address), openApiPath, out Uri openApiUrl))
-                        {
                             throw new ArgumentException("Unable to combine specified url values");
-                        }
 
                         var stream = httpClient.GetStreamAsync(openApiUrl).Result;
 
@@ -143,34 +128,31 @@ public sealed class ReverseProxyDocumentFilter : IOpenApiDocumentTransformer
                             stream.CopyTo(memoryStream);
                             memoryStream.Position = 0;
                         }
+
                         var doc = OpenApiDocument.Load(memoryStream);
 
                         if (openApi.MetadataPath == openApiPath)
-                        {
                             info = doc.Document.Info;
-                        }
 
                         foreach (var path in doc.Document.Paths)
                         {
                             var key = path.Key;
                             var value = path.Value;
 
-                            if (filterRegex != null
-                                && !filterRegex.IsMatch(key))
-                            {
+                            if (filterRegex != null && !filterRegex.IsMatch(key))
                                 continue;
-                            }
 
                             var operationKeys = path.Value.Operations.Keys.ToList();
+
                             if (publishedRoutes != null)
                             {
                                 var pathKey = $"{openApi.PrefixPath}{path.Key}";
+
                                 if (!publishedRoutes.ContainsKey(pathKey))
-                                {
                                     continue;
-                                }
 
                                 var methods = publishedRoutes[pathKey];
+
                                 var operations = _operationTypeMapping
                                     .Where(q => methods.Contains(q.Key))
                                     .Select(q => q.Value)
@@ -179,9 +161,7 @@ public sealed class ReverseProxyDocumentFilter : IOpenApiDocumentTransformer
                                 foreach (var operationKey in operationKeys)
                                 {
                                     if (!operations.Contains(operationKey))
-                                    {
                                         path.Value.Operations.Remove(operationKey);
-                                    }
                                 }
                             }
 
@@ -191,50 +171,38 @@ public sealed class ReverseProxyDocumentFilter : IOpenApiDocumentTransformer
                         }
 
                         components.Add(doc.Document.Components, config.OpenApiConfig.RenameDuplicateSchemas);
+
                         if (doc.Document.Security != null && doc.Document.Security.Any())
-                        {
                             securityRequirements.AddRange(doc.Document.Security);
-                        }
 
                         foreach (var tag in doc.Document.Tags)
-                        {
                             tags.Add(tag);
-                        }
                     }
                 }
             }
         }
 
         openApiDoc.Info = info;
-        openApiDoc.Paths = paths;
-        openApiDoc.Security = securityRequirements;
-        openApiDoc.Components = components;
         openApiDoc.Tags = tags;
+        openApiDoc.Paths = paths;
+        openApiDoc.Components = components;
+        openApiDoc.Security = securityRequirements;
     }
 
-    private static IReadOnlyDictionary<string, IEnumerable<string>> GetPublishedPaths(
-        ReverseProxyDocumentFilterConfig config)
+    private static IReadOnlyDictionary<string, IEnumerable<string>> GetPublishedPaths(ReverseProxyDocumentFilterConfig config)
     {
         var validRoutes = new Dictionary<string, IEnumerable<string>>();
+
         foreach (var route in config.Routes)
         {
             if (route.Value?.Match.Path == null)
-            {
                 continue;
-            }
 
             if (!validRoutes.ContainsKey(route.Value.Match.Path))
-            {
                 validRoutes.TryAdd(route.Value.Match.Path, route.Value.Match.Methods);
-            }
             else
-            {
                 if (route.Value.Match.Methods != null)
-                {
-                    validRoutes[route.Value.Match.Path] =
-                        validRoutes[route.Value.Match.Path].Concat(route.Value.Match.Methods);
-                }
-            }
+                    validRoutes[route.Value.Match.Path] = validRoutes[route.Value.Match.Path].Concat(route.Value.Match.Methods);
         }
 
         return validRoutes;
@@ -245,7 +213,8 @@ public sealed class ReverseProxyDocumentFilter : IOpenApiDocumentTransformer
     {
         var factories = _factories?.Where(x => x is IOpenApiTransformFactory).ToList();
 
-        if (factories == null) return;
+        if (factories == null)
+            return;
 
         foreach (var operationKey in operationKeys)
         {

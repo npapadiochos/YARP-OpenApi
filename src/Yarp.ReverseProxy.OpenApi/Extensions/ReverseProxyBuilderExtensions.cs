@@ -6,12 +6,9 @@ namespace Yarp.ReverseProxy.OpenApi.Extensions;
 
 public static class ReverseProxyBuilderExtensions
 {
-    public static IReverseProxyBuilder AddOpenApi(
-        this IReverseProxyBuilder builder,
-        IConfigurationSection configurationSection)
+    public static IReverseProxyBuilder AddOpenApi(this IReverseProxyBuilder builder, IConfigurationSection configurationSection)
     {
-        if (configurationSection == null)
-            throw new ArgumentNullException(nameof(configurationSection));
+        ArgumentNullException.ThrowIfNull(configurationSection);
 
         builder.Services.Configure<ReverseProxyDocumentFilterConfig>(configurationSection);
 
@@ -22,12 +19,9 @@ public static class ReverseProxyBuilderExtensions
         return builder;
     }
 
-    public static IReverseProxyBuilder AddOpenApi(
-        this IReverseProxyBuilder builder,
-        ReverseProxyDocumentFilterConfig config)
+    public static IReverseProxyBuilder AddOpenApi(this IReverseProxyBuilder builder, ReverseProxyDocumentFilterConfig config)
     {
-        if (config == null)
-            throw new ArgumentNullException(nameof(config));
+        ArgumentNullException.ThrowIfNull(config);
 
         builder.Services.Configure((Action<ReverseProxyDocumentFilterConfig>)(overriddenConfig =>
         {
@@ -41,9 +35,7 @@ public static class ReverseProxyBuilderExtensions
         return builder;
     }
 
-    private static void ConfigureHttpClient(
-        IReverseProxyBuilder builder,
-        ReverseProxyDocumentFilterConfig config)
+    private static void ConfigureHttpClient(IReverseProxyBuilder builder, ReverseProxyDocumentFilterConfig config)
     {
         foreach (var cluster in config.Clusters)
         {
@@ -52,9 +44,7 @@ public static class ReverseProxyBuilderExtensions
                 var httpClientBuilder = builder.Services.AddHttpClient($"{cluster.Key}_{destination.Key}");
 
                 if (!string.IsNullOrWhiteSpace(destination.Value.AccessTokenClientName))
-                {
                     httpClientBuilder.AddClientAccessTokenHandler(destination.Value.AccessTokenClientName);
-                }
             }
         }
     }
