@@ -1,12 +1,12 @@
+using Microsoft.Extensions.Options;
+using Microsoft.OpenApi;
+using Swashbuckle.AspNetCore.SwaggerGen;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Text.RegularExpressions;
-using Microsoft.Extensions.Options;
-using Microsoft.OpenApi.Models;
-using Microsoft.OpenApi.Readers;
-using Swashbuckle.AspNetCore.SwaggerGen;
 using Yarp.ReverseProxy.Swagger.Extensions;
 using Yarp.ReverseProxy.Transforms.Builder;
 
@@ -15,7 +15,7 @@ namespace Yarp.ReverseProxy.Swagger;
 public sealed class ReverseProxyDocumentFilter : IDocumentFilter
 {
     private readonly IHttpClientFactory _httpClientFactory;
-    private readonly IReadOnlyDictionary<string, OperationType> _operationTypeMapping;
+    private readonly IReadOnlyDictionary<string, HttpMethod> _operationTypeMapping;
     private readonly List<ITransformFactory> _factories;
     
     private ReverseProxyDocumentFilterConfig config;
@@ -31,16 +31,16 @@ public sealed class ReverseProxyDocumentFilter : IDocumentFilter
 
         configOptions.OnChange(x => { config = x; });
 
-        _operationTypeMapping = new Dictionary<string, OperationType>
+        _operationTypeMapping = new Dictionary<string, HttpMethod>
         {
-            { "GET", OperationType.Get },
-            { "POST", OperationType.Post },
-            { "PUT", OperationType.Put },
-            { "DELETE", OperationType.Delete },
-            { "PATCH", OperationType.Patch },
-            { "HEAD", OperationType.Head },
-            { "OPTIONS", OperationType.Options },
-            { "TRACE", OperationType.Trace },
+            { "GET", HttpMethod.Get },
+            { "PUT", HttpMethod.Put },
+            { "HEAD", HttpMethod.Head },
+            { "POST", HttpMethod.Post },
+            { "PATCH", HttpMethod.Patch },
+            { "TRACE", HttpMethod.Trace },
+            { "DELETE", HttpMethod.Delete },
+            { "OPTIONS", HttpMethod.Options }
         };
     }
 
@@ -84,7 +84,7 @@ public sealed class ReverseProxyDocumentFilter : IDocumentFilter
         var paths = new OpenApiPaths();
         var components = new OpenApiComponents();
         var securityRequirements = new List<OpenApiSecurityRequirement>();
-        var tags = new List<OpenApiTag>();
+        var tags = new HashSet<OpenApiTag>();
 
         foreach (var clusterKeyValuePair in clusters)
         {
@@ -132,14 +132,26 @@ public sealed class ReverseProxyDocumentFilter : IDocumentFilter
                         }
 
                         var stream = httpClient.GetStreamAsync(swaggerUrl).Result;
-                        var doc = new OpenApiStreamReader().Read(stream, out _);
+
+                        MemoryStream memoryStream;
+                        if (stream is MemoryStream ms)
+                        {
+                            memoryStream = ms;
+                        }
+                        else
+                        {
+                            memoryStream = new MemoryStream();
+                            stream.CopyTo(memoryStream);
+                            memoryStream.Position = 0;
+                        }
+                        var doc = OpenApiDocument.Load(memoryStream);
 
                         if (swagger.MetadataPath == swaggerPath)
                         {
-                            info = doc.Info;
+                            info = doc.Document.Info;
                         }
 
-                        foreach (var path in doc.Paths)
+                        foreach (var path in doc.Document.Paths)
                         {
                             var key = path.Key;
                             var value = path.Value;
@@ -179,9 +191,16 @@ public sealed class ReverseProxyDocumentFilter : IDocumentFilter
                             paths.TryAdd($"{swagger.PrefixPath}{key}", value);
                         }
 
-                        components.Add(doc.Components, config.Swagger.RenameDuplicateSchemas);
-                        securityRequirements.AddRange(doc.SecurityRequirements);
-                        tags.AddRange(doc.Tags);
+                        components.Add(doc.Document.Components, config.Swagger.RenameDuplicateSchemas);
+                        if (doc.Document.Security != null && doc.Document.Security.Any())
+                        {
+                            securityRequirements.AddRange(doc.Document.Security);
+                        }
+
+                        foreach (var tag in doc.Document.Tags)
+                        {
+                            tags.Add(tag);
+                        }
                     }
                 }
             }
@@ -189,7 +208,7 @@ public sealed class ReverseProxyDocumentFilter : IDocumentFilter
 
         swaggerDoc.Info = info;
         swaggerDoc.Paths = paths;
-        swaggerDoc.SecurityRequirements = securityRequirements;
+        swaggerDoc.Security = securityRequirements;
         swaggerDoc.Components = components;
         swaggerDoc.Tags = tags;
     }
@@ -222,8 +241,8 @@ public sealed class ReverseProxyDocumentFilter : IDocumentFilter
         return validRoutes;
     }
 
-    private void ApplySwaggerTransformation(List<OperationType> operationKeys,
-        KeyValuePair<string, OpenApiPathItem> path, string clusterKey)
+    private void ApplySwaggerTransformation(List<HttpMethod> operationKeys,
+        KeyValuePair<string, IOpenApiPathItem> path, string clusterKey)
     {
         var factories = _factories?.Where(x => x is ISwaggerTransformFactory).ToList();
 

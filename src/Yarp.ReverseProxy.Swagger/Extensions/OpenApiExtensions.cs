@@ -1,5 +1,5 @@
 using System.Collections.Generic;
-using Microsoft.OpenApi.Models;
+using Microsoft.OpenApi;
 
 namespace Yarp.ReverseProxy.Swagger.Extensions;
 
@@ -35,7 +35,6 @@ public static class OpenApiExtensions
             {
                 i++;
                 var key = $"{data.Key}{i}";
-                data.Value.Reference.Id = key;
                 added = source.Schemas.TryAdd(key, data.Value);
             }
         }
