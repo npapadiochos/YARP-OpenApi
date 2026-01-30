@@ -1,18 +1,20 @@
+using Microsoft.AspNetCore.OpenApi;
 using Microsoft.Extensions.Options;
 using Microsoft.OpenApi;
-using Swashbuckle.AspNetCore.SwaggerGen;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Text.RegularExpressions;
+using System.Threading;
+using System.Threading.Tasks;
 using Yarp.ReverseProxy.Swagger.Extensions;
 using Yarp.ReverseProxy.Transforms.Builder;
 
 namespace Yarp.ReverseProxy.Swagger;
 
-public sealed class ReverseProxyDocumentFilter : IDocumentFilter
+public sealed class ReverseProxyDocumentFilter : IOpenApiDocumentTransformer
 {
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly IReadOnlyDictionary<string, HttpMethod> _operationTypeMapping;
@@ -44,10 +46,7 @@ public sealed class ReverseProxyDocumentFilter : IDocumentFilter
         };
     }
 
-    public void Apply(
-        OpenApiDocument swaggerDoc,
-        DocumentFilterContext context
-    )
+    public async Task TransformAsync(OpenApiDocument doc, OpenApiDocumentTransformerContext context, CancellationToken cancellationToken)
     {
         if (config.IsEmpty)
         {
@@ -67,7 +66,7 @@ public sealed class ReverseProxyDocumentFilter : IDocumentFilter
                 .ToDictionary(x => x.Key, x => x.Value);
         }
 
-        Apply(swaggerDoc, clusters);
+        Apply(doc, clusters);
     }
 
     private void Apply(
