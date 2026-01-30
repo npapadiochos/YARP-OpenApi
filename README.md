@@ -1,12 +1,3 @@
-![dotnet_main](https://github.com/andreytreyt/yarp-swagger/actions/workflows/dotnet.yml/badge.svg?branch=main)
-![release](https://github.com/andreytreyt/yarp-swagger/actions/workflows/release.yml/badge.svg)
-[![nuget_v](https://img.shields.io/nuget/v/Treyt.Yarp.ReverseProxy.Swagger?logo=nuget)](https://www.nuget.org/packages/Treyt.Yarp.ReverseProxy.Swagger/)
-![nuget_dt](https://img.shields.io/nuget/dt/Treyt.Yarp.ReverseProxy.Swagger?logo=nuget)
-
-# Getting Started
-
-Configure [Swagger](https://learn.microsoft.com/en-us/aspnet/core/tutorials/getting-started-with-swashbuckle) and [YARP](https://github.com/dotnet/yarp) for your project.
-
 ### From Configuration
 
 Update appsettings.json:
@@ -19,11 +10,11 @@ Update appsettings.json:
         "Destinations": {
           "Default": {
             "Address": "https://localhost:5101",
-            "Swaggers": [ // <-- this block
+            "OpenApiDocs": [ // <-- this block
               {
                 "PrefixPath": "/proxy-app1",
                 "Paths": [
-                  "/swagger/v1/swagger.json"
+                  "/openapi/v1.json"
                 ]
               }
             ]
@@ -42,7 +33,7 @@ var configuration = builder.Configuration.GetSection("ReverseProxy");
 builder.Services
     .AddReverseProxy()
     .LoadFromConfig(configuration)
-    .AddSwagger(configuration); // <-- this line
+    .AddOpenApi(configuration); // <-- this line
 ```
 
 ### From Code
@@ -93,7 +84,7 @@ ClusterConfig[] GetClusters()
     };
 }
 
-ReverseProxyDocumentFilterConfig GetSwaggerConfig()
+ReverseProxyDocumentFilterConfig GetOpenApiConfig()
 {
     return new ReverseProxyDocumentFilterConfig
     {
@@ -109,12 +100,12 @@ ReverseProxyDocumentFilterConfig GetSwaggerConfig()
                             "Default", new ReverseProxyDocumentFilterConfig.Cluster.Destination
                             {
                                 Address = "https://localhost:5101",
-                                Swaggers = new[]
+                                OpenApiDocs = new[]
                                 {
-                                    new ReverseProxyDocumentFilterConfig.Cluster.Destination.Swagger
+                                    new ReverseProxyDocumentFilterConfig.Cluster.Destination.OpenApiDoc
                                     {
                                         PrefixPath = "/proxy-app1",
-                                        Paths = new[] {"/swagger/v1/swagger.json"}
+                                        Paths = new[] {"/openapi/v1.json"}
                                     }
                                 }
                             }
@@ -129,54 +120,31 @@ ReverseProxyDocumentFilterConfig GetSwaggerConfig()
 builder.Services
     .AddReverseProxy()
     .LoadFromMemory(GetRoutes(), GetClusters())
-    .AddSwagger(GetSwaggerConfig()); // <-- this line
+    .AddOpenApi(GetOpenApiConfig()); // <-- this line
 ```
 
 ### Common
 
-Create (if doesn't exist) or update [ConfigureSwaggerOptions.cs](sample/Yarp/Configs/ConfigureSwaggerOptions.cs):
-
-```csharp
-public void Configure(SwaggerGenOptions options)
-{
-    var filterDescriptors = new List<FilterDescriptor>();
-
-    foreach (var cluster in _reverseProxyDocumentFilterConfig.Clusters)
-    {
-        options.SwaggerDoc(cluster.Key, new OpenApiInfo {Title = cluster.Key, Version = cluster.Key});
-    }
-
-    filterDescriptors.Add(new FilterDescriptor
-    {
-        Type = typeof(ReverseProxyDocumentFilter),
-        Arguments = Array.Empty<object>()
-    });
-
-    options.DocumentFilterDescriptors = filterDescriptors;
-}
-```
-
 Update Program.cs:
 
 ```csharp
-builder.Services.AddTransient<IConfigureOptions<SwaggerGenOptions>, ConfigureSwaggerOptions>();
-builder.Services.AddSwaggerGen();
+builder.Services.AddOpenApi(options =>
+{
+    options.AddDocumentTransformer<ReverseProxyDocumentFilter>();
+});
 ```
 
 ```csharp
+app.MapOpenApi().AllowAnonymous();
 app.UseSwaggerUI(options =>
 {
     var config = app.Services.GetRequiredService<IOptionsMonitor<ReverseProxyDocumentFilterConfig>>().CurrentValue;
     foreach (var cluster in config.Clusters)
     {
-        options.SwaggerEndpoint($"/swagger/{cluster.Key}/swagger.json", cluster.Key);
+        options.SwaggerEndpoint($"/openapi/{cluster.Key}.json", cluster.Key);
     }
 });
 ```
-
-After run you will get generated Swagger files by clusters:
-
-![image](https://raw.githubusercontent.com/andreytreyt/yarp-swagger/main/README.png)
 
 # Authentication and Authorization
 
@@ -191,11 +159,11 @@ Update appsettings.json:
           "Default": {
             "Address": "https://localhost:5101",
             "AccessTokenClientName": "Identity", // <-- this line
-            "Swaggers": [
+            "OpenApiDocs": [
               {
                 "PrefixPath": "/proxy-app1",
                 "Paths": [
-                  "/swagger/v1/swagger.json"
+                  "/openapi/v1.json"
                 ]
               }
             ]
@@ -223,174 +191,19 @@ builder.Services.AddAccessTokenManagement(options =>
 });
 ```
 
-# Filtering of Paths
-
-### By Regex Pattern
-
-Update appsettings.json:
-
-```json lines
-{
-  "ReverseProxy": {
-    "Clusters": {
-      "App1Cluster": {
-        "Destinations": {
-          "Default": {
-            "Address": "https://localhost:5101",
-            "Swaggers": [
-              {
-                "PrefixPath": "/proxy-app1",
-                "PathFilterRegexPattern": ".*", // <-- this line
-                "Paths": [
-                  "/swagger/v1/swagger.json"
-                ]
-              }
-            ]
-          }
-        }
-      }
-    }
-  }
-}
-```
-
-### By Only Published Paths
-
-If you want to publish only some configured path in YARP, you can use the `AddOnlyPublishedPaths` option.
-(For using these options, you need to add Methods configuration in the Match block of the YARP configuration.)
-
-Update appsettings.json:
-
-```json lines
-{
-  "ReverseProxy": {
-    "Clusters": {
-      "App1Cluster": {
-        "Destinations": {
-          "Default": {
-            "Address": "https://localhost:5101",
-            "Swaggers": [
-              {
-                "PrefixPath": "/proxy-app1",
-                "AddOnlyPublishedPaths": true, // <-- this line
-                "Paths": [
-                  "/swagger/v1/swagger.json"
-                ]
-              }
-            ]
-          }
-        }
-      }
-    }
-  }
-}
-```
-
-# Swagger Metadata
-
-If you want to publish the API metadata ([OpenAPI info object](https://swagger.io/specification/#info-object)) from the configured swaggers, specify a path from the list of configured paths using the `MetadataPath` option. This will overwrite the cluster metadata with that of the swagger metadata.
-
-Update appsettings.json:
-
-```json lines
-{
-  "ReverseProxy": {
-    "Clusters": {
-      "App1Cluster": {
-        "Destinations": {
-          "Default": {
-            "Address": "https://localhost:5101",
-            "Swaggers": [
-              {
-                "PrefixPath": "/proxy-app1",
-                "MetadataPath": "/swagger/v1/swagger.json", // <-- this line
-                "Paths": [
-                  "/swagger/v1/swagger.json"
-                ]
-              }
-            ]
-          }
-        }
-      }
-    }
-  }
-}
-```
-
 # Common Swagger Document
 
-If you want to combine multiple swagger documents into one, you can use the `Swagger` option.
+If you want to combine multiple OpenApi documents into one.
 
 Update appsettings.json:
 
 ```json lines
 {
   "ReverseProxy": {
-    "Swagger": { // <-- this block
+    "OpenApiConfig": { // <-- this block
       "IsCommonDocument": true,
       "CommonDocumentName": "YARP"
     },
   }
 }
-```
-
-# Swagger Transformation
-
-If you want to transform the Swagger to fit the modifications done by the transformations you have to implement the changes in the `ISwaggerTransformFactory`. Below is an example from a custom transformation called `RenameHeader`.
-
-```csharp
-public class HeaderTransformFactory : ITransformFactory, ISwaggerTransformFactory
-{
-    public bool Validate(TransformRouteValidationContext context, IReadOnlyDictionary<string, string> transformValues)
-    {
-        // validation implementation of custom transformation
-    }
-    
-    public bool Build(TransformBuilderContext context, IReadOnlyDictionary<string, string> transformValues)
-    {
-        // transform implementation of custom transformation
-    }
-
-    /// <summary>
-    /// Header title rename transformation for Swagger
-    /// </summary>
-    /// <param name="operation"></param>
-    /// <param name="transformValues"></param>
-    /// <returns></returns>
-    public bool Build(OpenApiOperation operation, IReadOnlyDictionary<string, string> transformValues)
-    {
-        if (transformValues.ContainsKey("RenameHeader"))
-        {
-            foreach (var parameter in operation.Parameters)
-            {
-                if (parameter.In.HasValue && parameter.In.Value.ToString().Equals("Header"))
-                {
-                    if (transformValues.TryGetValue("RenameHeader", out var header)
-                        && transformValues.TryGetValue("Set", out var newHeader))
-                    {
-                        if (parameter.Name == newHeader)
-                        {
-                            parameter.Name = header;
-                        }
-                    }
-                }
-            }
-
-            return true;
-        }
-
-        return false;
-    }
-}
-
-```
-
-Then register the transformation in `Program.cs`
-
-```
-builder.Services
-    .AddReverseProxy()
-    .LoadFromConfig(configuration)
-    .AddTransformFactory<HeaderTransformFactory>()
-    .AddSwagger(configuration)
 ```
