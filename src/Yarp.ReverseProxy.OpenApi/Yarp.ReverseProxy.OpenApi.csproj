@@ -1,14 +1,33 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <Version>5.0.0</Version>
+        <Version>5.0.1</Version>
         <TargetFrameworks>net10.0</TargetFrameworks>
-        <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
         <PackageId>Npap.Yarp.ReverseProxy.OpenApi</PackageId>
+
+        <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
+
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+        <PackageLicenseFile>LICENSE.md</PackageLicenseFile>
+        <PackageReleaseNotes>Update Project Dependencies</PackageReleaseNotes>
+        <Description>YARP-OpenAPI - Serve a single OpenApi doc with YARP by merging OpenAPI docs aggregated from multiple microservices.</Description>
+
         <Authors>Andrei Tsaregorodtsev, Nick Papadiochos</Authors>
-        <PackageProjectUrl>https://github.com/npapadiochos/yarp-openApi</PackageProjectUrl>
+        <PackageProjectUrl>https://github.com/npapadiochos/YARP-OpenApi</PackageProjectUrl>
     </PropertyGroup>
 
+    <ItemGroup>
+      <None Include="..\..\LICENSE.md">
+        <Pack>True</Pack>
+        <PackagePath>\</PackagePath>
+      </None>
+      <None Include="..\..\README.md">
+        <Pack>True</Pack>
+        <PackagePath>\</PackagePath>
+      </None>
+    </ItemGroup>
+  
     <ItemGroup>
         <PackageReference Include="IdentityModel.AspNetCore" Version="4.3.0" />
         <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.2" />
