@@ -9,10 +9,10 @@ using System.Net.Http;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
-using Yarp.ReverseProxy.Swagger.Extensions;
+using Yarp.ReverseProxy.OpenApi.Extensions;
 using Yarp.ReverseProxy.Transforms.Builder;
 
-namespace Yarp.ReverseProxy.Swagger;
+namespace Yarp.ReverseProxy.OpenApi;
 
 public sealed class ReverseProxyDocumentFilter : IOpenApiDocumentTransformer
 {
@@ -55,7 +55,7 @@ public sealed class ReverseProxyDocumentFilter : IOpenApiDocumentTransformer
 
         IReadOnlyDictionary<string, ReverseProxyDocumentFilterConfig.Cluster> clusters;
 
-        if (config.Swagger.IsCommonDocument)
+        if (config.OpenApiConfig.IsCommonDocument)
         {
             clusters = config.Clusters;
         }
@@ -70,7 +70,7 @@ public sealed class ReverseProxyDocumentFilter : IOpenApiDocumentTransformer
     }
 
     private void Apply(
-        OpenApiDocument swaggerDoc,
+        OpenApiDocument openApiDoc,
         IReadOnlyDictionary<string, ReverseProxyDocumentFilterConfig.Cluster> clusters
     )
     {
@@ -79,7 +79,7 @@ public sealed class ReverseProxyDocumentFilter : IOpenApiDocumentTransformer
             return;
         }
 
-        var info = swaggerDoc.Info;
+        var info = openApiDoc.Info;
         var paths = new OpenApiPaths();
         var components = new OpenApiComponents();
         var securityRequirements = new List<OpenApiSecurityRequirement>();
@@ -97,40 +97,40 @@ public sealed class ReverseProxyDocumentFilter : IOpenApiDocumentTransformer
 
             foreach (var destination in cluster.Destinations)
             {
-                if (true != destination.Value.Swaggers?.Any())
+                if (true != destination.Value.OpenApiDocs?.Any())
                 {
                     continue;
                 }
 
                 var httpClient = _httpClientFactory.CreateClient($"{clusterKey}_{destination.Key}");
 
-                foreach (var swagger in destination.Value.Swaggers)
+                foreach (var openApi in destination.Value.OpenApiDocs)
                 {
-                    if (swagger.Paths?.Any() != true)
+                    if (openApi.Paths?.Any() != true)
                     {
                         continue;
                     }
 
                     IReadOnlyDictionary<string, IEnumerable<string>> publishedRoutes = null;
-                    if (swagger.AddOnlyPublishedPaths)
+                    if (openApi.AddOnlyPublishedPaths)
                     {
                         publishedRoutes = GetPublishedPaths(config);
                     }
 
                     Regex filterRegex = null;
-                    if (!string.IsNullOrWhiteSpace(swagger.PathFilterRegexPattern))
+                    if (!string.IsNullOrWhiteSpace(openApi.PathFilterRegexPattern))
                     {
-                        filterRegex = new Regex(swagger.PathFilterRegexPattern);
+                        filterRegex = new Regex(openApi.PathFilterRegexPattern);
                     }
 
-                    foreach (var swaggerPath in swagger.Paths)
+                    foreach (var openApiPath in openApi.Paths)
                     {
-                        if (!Uri.TryCreate(new Uri(destination.Value.Address), swaggerPath, out Uri swaggerUrl))
+                        if (!Uri.TryCreate(new Uri(destination.Value.Address), openApiPath, out Uri openApiUrl))
                         {
                             throw new ArgumentException("Unable to combine specified url values");
                         }
 
-                        var stream = httpClient.GetStreamAsync(swaggerUrl).Result;
+                        var stream = httpClient.GetStreamAsync(openApiUrl).Result;
 
                         MemoryStream memoryStream;
                         if (stream is MemoryStream ms)
@@ -145,7 +145,7 @@ public sealed class ReverseProxyDocumentFilter : IOpenApiDocumentTransformer
                         }
                         var doc = OpenApiDocument.Load(memoryStream);
 
-                        if (swagger.MetadataPath == swaggerPath)
+                        if (openApi.MetadataPath == openApiPath)
                         {
                             info = doc.Document.Info;
                         }
@@ -164,7 +164,7 @@ public sealed class ReverseProxyDocumentFilter : IOpenApiDocumentTransformer
                             var operationKeys = path.Value.Operations.Keys.ToList();
                             if (publishedRoutes != null)
                             {
-                                var pathKey = $"{swagger.PrefixPath}{path.Key}";
+                                var pathKey = $"{openApi.PrefixPath}{path.Key}";
                                 if (!publishedRoutes.ContainsKey(pathKey))
                                 {
                                     continue;
@@ -185,12 +185,12 @@ public sealed class ReverseProxyDocumentFilter : IOpenApiDocumentTransformer
                                 }
                             }
 
-                            ApplySwaggerTransformation(operationKeys, path, clusterKey);
+                            ApplyOpenApiTransformation(operationKeys, path, clusterKey);
 
-                            paths.TryAdd($"{swagger.PrefixPath}{key}", value);
+                            paths.TryAdd($"{openApi.PrefixPath}{key}", value);
                         }
 
-                        components.Add(doc.Document.Components, config.Swagger.RenameDuplicateSchemas);
+                        components.Add(doc.Document.Components, config.OpenApiConfig.RenameDuplicateSchemas);
                         if (doc.Document.Security != null && doc.Document.Security.Any())
                         {
                             securityRequirements.AddRange(doc.Document.Security);
@@ -205,11 +205,11 @@ public sealed class ReverseProxyDocumentFilter : IOpenApiDocumentTransformer
             }
         }
 
-        swaggerDoc.Info = info;
-        swaggerDoc.Paths = paths;
-        swaggerDoc.Security = securityRequirements;
-        swaggerDoc.Components = components;
-        swaggerDoc.Tags = tags;
+        openApiDoc.Info = info;
+        openApiDoc.Paths = paths;
+        openApiDoc.Security = securityRequirements;
+        openApiDoc.Components = components;
+        openApiDoc.Tags = tags;
     }
 
     private static IReadOnlyDictionary<string, IEnumerable<string>> GetPublishedPaths(
@@ -240,10 +240,10 @@ public sealed class ReverseProxyDocumentFilter : IOpenApiDocumentTransformer
         return validRoutes;
     }
 
-    private void ApplySwaggerTransformation(List<HttpMethod> operationKeys,
+    private void ApplyOpenApiTransformation(List<HttpMethod> operationKeys,
         KeyValuePair<string, IOpenApiPathItem> path, string clusterKey)
     {
-        var factories = _factories?.Where(x => x is ISwaggerTransformFactory).ToList();
+        var factories = _factories?.Where(x => x is IOpenApiTransformFactory).ToList();
 
         if (factories == null) return;
 
@@ -257,11 +257,11 @@ public sealed class ReverseProxyDocumentFilter : IOpenApiDocumentTransformer
                 .SelectMany(x => x.Value.Transforms)
                 .ToList();
 
-            foreach (var swaggerFactory in factories.Select(factory => factory as ISwaggerTransformFactory))
+            foreach (var openApiFactory in factories.Select(factory => factory as IOpenApiTransformFactory))
             {
                 foreach (var transform in transforms)
                 {
-                    swaggerFactory?.Build(operation, transform);
+                    openApiFactory?.Build(operation, transform);
                 }
             }
         }

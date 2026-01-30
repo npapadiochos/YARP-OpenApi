@@ -4,9 +4,9 @@
         <Version>5.0.0</Version>
         <TargetFrameworks>net10.0</TargetFrameworks>
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-        <PackageId>TreytNpap.Yarp.ReverseProxy.Swagger</PackageId>
+        <PackageId>Npap.Yarp.ReverseProxy.OpenApi</PackageId>
         <Authors>Andrei Tsaregorodtsev, Nick Papadiochos</Authors>
-        <PackageProjectUrl>https://github.com/npapadiochos/yarp-swagger</PackageProjectUrl>
+        <PackageProjectUrl>https://github.com/npapadiochos/yarp-openApi</PackageProjectUrl>
     </PropertyGroup>
 
     <ItemGroup>

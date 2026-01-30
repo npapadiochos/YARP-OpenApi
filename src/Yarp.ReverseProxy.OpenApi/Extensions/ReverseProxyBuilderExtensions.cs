@@ -2,11 +2,11 @@ using System;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Yarp.ReverseProxy.Swagger.Extensions;
+namespace Yarp.ReverseProxy.OpenApi.Extensions;
 
 public static class ReverseProxyBuilderExtensions
 {
-    public static IReverseProxyBuilder AddSwagger(
+    public static IReverseProxyBuilder AddOpenApi(
         this IReverseProxyBuilder builder,
         IConfigurationSection configurationSection)
     {
@@ -22,19 +22,19 @@ public static class ReverseProxyBuilderExtensions
         return builder;
     }
 
-    public static IReverseProxyBuilder AddSwagger(
+    public static IReverseProxyBuilder AddOpenApi(
         this IReverseProxyBuilder builder,
         ReverseProxyDocumentFilterConfig config)
     {
         if (config == null)
             throw new ArgumentNullException(nameof(config));
 
-        builder.Services.Configure<ReverseProxyDocumentFilterConfig>(overriddenConfig =>
+        builder.Services.Configure((Action<ReverseProxyDocumentFilterConfig>)(overriddenConfig =>
         {
             overriddenConfig.Routes = config.Routes;
             overriddenConfig.Clusters = config.Clusters;
-            overriddenConfig.Swagger = config.Swagger;
-        });
+            overriddenConfig.OpenApiConfig = config.OpenApiConfig;
+        }));
 
         ConfigureHttpClient(builder, config);
 

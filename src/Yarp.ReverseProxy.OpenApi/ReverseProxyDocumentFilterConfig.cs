@@ -2,11 +2,11 @@ using System.Collections.Generic;
 using System.Linq;
 using Yarp.ReverseProxy.Configuration;
 
-namespace Yarp.ReverseProxy.Swagger;
+namespace Yarp.ReverseProxy.OpenApi;
 
 public sealed class ReverseProxyDocumentFilterConfig
 {
-    public SwaggerConfig Swagger { get; set; } = new();
+    public OpenApiConfiguration OpenApiConfig { get; set; } = new();
     public IReadOnlyDictionary<string, RouteConfig> Routes { get; set; }
     public IReadOnlyDictionary<string, Cluster> Clusters { get; set; }
 
@@ -18,9 +18,9 @@ public sealed class ReverseProxyDocumentFilterConfig
         {
             public string AccessTokenClientName { get; set; }
             public string Address { get; set; }
-            public IReadOnlyList<Swagger> Swaggers { get; set; }
+            public IReadOnlyList<OpenApiDoc> OpenApiDocs { get; set; }
 
-            public sealed class Swagger
+            public sealed class OpenApiDoc
             {
                 public string PrefixPath { get; set; }
                 public string PathFilterRegexPattern { get; set; }
@@ -31,7 +31,7 @@ public sealed class ReverseProxyDocumentFilterConfig
         }
     }
 
-    public sealed class SwaggerConfig
+    public sealed class OpenApiConfiguration
     {
         public bool IsCommonDocument { get; set; } = false;
         public string CommonDocumentName { get; set; } = "YARP";

@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using Microsoft.OpenApi;
 
-namespace Yarp.ReverseProxy.Swagger.Extensions;
+namespace Yarp.ReverseProxy.OpenApi.Extensions;
 
 public static class OpenApiExtensions
 {

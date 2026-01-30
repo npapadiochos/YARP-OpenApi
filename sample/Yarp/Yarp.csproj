@@ -13,7 +13,7 @@
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\..\src\Yarp.ReverseProxy.Swagger\Yarp.ReverseProxy.Swagger.csproj" />
+      <ProjectReference Include="..\..\src\Yarp.ReverseProxy.OpenApi\Yarp.ReverseProxy.OpenApi.csproj" />
     </ItemGroup>
 
 </Project>

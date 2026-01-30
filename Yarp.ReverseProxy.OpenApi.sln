@@ -1,8 +1,11 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 18
+VisualStudioVersion = 18.2.11415.280 d18.0
+MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{B787C845-4F00-4E48-A920-FA162A6C40C9}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Yarp.ReverseProxy.Swagger", "src\Yarp.ReverseProxy.Swagger\Yarp.ReverseProxy.Swagger.csproj", "{5907BE46-F804-4ACC-9FEA-CB8FC6E1ABF1}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Yarp.ReverseProxy.OpenApi", "src\Yarp.ReverseProxy.OpenApi\Yarp.ReverseProxy.OpenApi.csproj", "{5907BE46-F804-4ACC-9FEA-CB8FC6E1ABF1}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "sample", "sample", "{62425892-9D58-4DFB-9FFE-CE2E45B883AC}"
 EndProject
@@ -40,6 +43,9 @@ Global
 		{917A2F0C-34A9-411B-8E97-9585900C5E6F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{917A2F0C-34A9-411B-8E97-9585900C5E6F}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{917A2F0C-34A9-411B-8E97-9585900C5E6F}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{5907BE46-F804-4ACC-9FEA-CB8FC6E1ABF1} = {B787C845-4F00-4E48-A920-FA162A6C40C9}
