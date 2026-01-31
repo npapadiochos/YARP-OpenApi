@@ -14,7 +14,7 @@ public static class ReverseProxyBuilderExtensions
 
         var config = configurationSection.Get<ReverseProxyDocumentFilterConfig>();
 
-        ConfigureHttpClient(builder, config);
+        builder.ConfigureHttpClient(config);
 
         return builder;
     }
@@ -30,12 +30,12 @@ public static class ReverseProxyBuilderExtensions
             overriddenConfig.OpenApiConfig = config.OpenApiConfig;
         }));
 
-        ConfigureHttpClient(builder, config);
+        builder.ConfigureHttpClient(config);
 
         return builder;
     }
 
-    private static void ConfigureHttpClient(IReverseProxyBuilder builder, ReverseProxyDocumentFilterConfig config)
+    private static void ConfigureHttpClient(this IReverseProxyBuilder builder, ReverseProxyDocumentFilterConfig config)
     {
         foreach (var cluster in config.Clusters)
         {

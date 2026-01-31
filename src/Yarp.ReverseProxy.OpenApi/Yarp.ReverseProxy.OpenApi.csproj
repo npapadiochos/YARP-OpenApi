@@ -1,10 +1,11 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <Version>5.0.2</Version>
+        <Version>5.0.3</Version>
         <TargetFrameworks>net10.0</TargetFrameworks>
         <PackageId>Npap.Yarp.ReverseProxy.OpenApi</PackageId>
 
+        <IncludeSymbols>True</IncludeSymbols>
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
         <GenerateDocumentationFile>true</GenerateDocumentationFile>
 
