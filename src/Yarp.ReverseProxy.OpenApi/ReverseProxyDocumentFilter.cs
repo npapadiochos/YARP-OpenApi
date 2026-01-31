@@ -67,19 +67,16 @@ public sealed class ReverseProxyDocumentFilter : IOpenApiDocumentTransformer
         Apply(doc, clusters);
     }
 
-    private void Apply(
-        OpenApiDocument openApiDoc,
-        IReadOnlyDictionary<string, ReverseProxyDocumentFilterConfig.Cluster> clusters
-    )
+    private void Apply(OpenApiDocument openApiDoc, IReadOnlyDictionary<string, ReverseProxyDocumentFilterConfig.Cluster> clusters)
     {
         if (true != clusters?.Any())
             return;
 
         var info = openApiDoc.Info;
         var paths = new OpenApiPaths();
+        var tags = new HashSet<OpenApiTag>();
         var components = new OpenApiComponents();
         var securityRequirements = new List<OpenApiSecurityRequirement>();
-        var tags = new HashSet<OpenApiTag>();
 
         foreach (var clusterKeyValuePair in clusters)
         {

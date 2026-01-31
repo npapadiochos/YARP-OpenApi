@@ -61,8 +61,9 @@ public static class OpenApiExtensions
         {
             foreach (var schema in components.Schemas)
             {
-                bool added = source.Schemas.TryAdd(schema.Key, schema.Value);
                 int i = 1;
+                bool added = source.Schemas.TryAdd(schema.Key, schema.Value);
+                
                 while (!added && renameDuplicateSchemas)
                 {
                     i++;

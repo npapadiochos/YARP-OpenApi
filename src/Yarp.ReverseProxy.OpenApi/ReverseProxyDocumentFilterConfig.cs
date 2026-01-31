@@ -16,8 +16,8 @@ public sealed class ReverseProxyDocumentFilterConfig
 
         public sealed class Destination
         {
-            public string AccessTokenClientName { get; set; }
             public string Address { get; set; }
+            public string AccessTokenClientName { get; set; }
             public IReadOnlyList<OpenApiDoc> OpenApiDocs { get; set; }
 
             public sealed class OpenApiDoc
